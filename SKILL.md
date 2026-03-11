@@ -55,7 +55,7 @@ description: |
 > 4. **[Always]** 完整阅读 `mbank/tech-stack.md`
 > 5. **[Always]** 阅读 `mbank/progress.md` 的 `## 当前状态` 区块（仅顶部，无需全文）
 > 6. **[Always]** 完成重大功能后，立即更新 `mbank/architecture.md` 和 `mbank/quickref.md`
-> 7. **[Always]** 完成重大功能后，为新模块生成或更新 `.cursor/rules/` 上下文规则
+> 7. **[Always]** 完成重大功能后，为新模块生成或更新 `.claude/rules/` 上下文规则
 > 8. **[Always]** 任务完成后，询问用户是否更新 `mbank/progress.md`
 
 # 代码规范 (Anti-Monolith)
@@ -180,7 +180,7 @@ description: |
 3. 等待用户验证
 4. 通过后更新 progress.md 和 architecture.md
 5. **同步更新 quickref.md**（关键路径、活跃工作流、新踩坑记录）
-6. **为完成的模块生成/更新 `.cursor/rules/` 上下文规则**
+6. **为完成的模块生成/更新 `.claude/rules/` 上下文规则**
 7. 进入下一步
 
 **关键规则**:
@@ -190,10 +190,14 @@ description: |
 
 ---
 
-## .cursor/rules/ 上下文规则生成
+## .claude/rules/ 上下文规则生成
 
-完成一个重大模块后，在 `.cursor/rules/` 下创建对应的 `.mdc` 文件。
-规则文件是**按需加载**的——只在编辑匹配文件时自动注入，不占用全局上下文。
+完成一个重大模块后，在 `.claude/rules/` 下创建对应的 `.md` 文件。
+规则文件在 Claude Code 会话启动时全局加载，因此应保持**精简**（每个文件控制在 30 行以内）。
+
+> **兼容说明**：frontmatter 中保留 `globs:` 字段，格式与 Cursor `.cursor/rules/*.mdc` 一致。
+> 当前 Claude Code 不按 glob 过滤（已知 bug），但保留该字段便于未来修复后自动生效，
+> 也便于同时维护 Cursor 规则时一键同步。
 
 ### 何时生成
 - 完成一个新模块/功能后
@@ -214,7 +218,7 @@ globs: [匹配的文件 glob 模式]
 ```
 
 ### 命名约定
-- 文件名 = 模块名或功能域名，如 `downloader.mdc`、`hero-analysis.mdc`
+- 文件名 = 模块名或功能域名，如 `downloader.md`、`hero-analysis.md`
 - globs 匹配对应的源文件，如 `scripts/downloader.py`、`scripts/hero_*.py`
 
 ### 示例
@@ -237,9 +241,9 @@ downloader 上下文：
 ```
 项目根目录/
 ├── CLAUDE.md              # 项目规则（/init 生成，始终加载）
-├── .cursor/
-│   └── rules/             # 文件级上下文规则（开发阶段按需生成）
-│       ├── downloader.mdc # 示例：编辑 downloader.py 时自动注入
+├── .claude/
+│   └── rules/             # 模块级上下文规则（开发阶段按需生成）
+│       ├── downloader.md  # 示例：downloader 模块的约束和踩坑
 │       └── ...
 └── mbank/
     ├── design.md              # 设计文档（用户创建）
@@ -260,5 +264,5 @@ downloader 上下文：
 | L4 常驻 | `mbank/design.md` | 每次对话 | 完整设计文档 |
 | L5 常驻 | `mbank/tech-stack.md` | 每次对话 | 技术栈约束 |
 | L6 常驻（部分）| `mbank/progress.md` | 每次对话，仅读顶部 `## 当前状态` | 当前阶段、最近任务 |
-| L7 按需 | `.cursor/rules/*.mdc` | 编辑匹配文件时 | 模块级实现细节、约束、陷阱 |
+| L7 全局 | `.claude/rules/*.md` | 会话启动时全局加载 | 模块级实现细节、约束、陷阱 |
 | L8 按需 | `mbank/progress.md` 全文 | 需要查历史/错误记录时 | 完整进度历史 |
