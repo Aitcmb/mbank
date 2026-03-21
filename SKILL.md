@@ -1,415 +1,225 @@
 ---
 name: mbank
 description: |
-  mbank 工作流，用于结构化项目开发。
-  前提：用户已在项目根目录创建 mbank/ 文件夹和 design.md 设计文档。
-  触发场景：(1) 用户输入 /mbank 启动需求澄清和技术栈生成；(2) 用户输入 /init 生成项目文件；(3) 用户输入 /check 执行验证和文档一致性检查；(4) 用户输入 /archive 归档当前版本；(5) 用户需要基于 mbank/ 文档进行结构化项目开发；(6) 用户提到 mbank 相关概念。
+  mbank 工作流，用于结构化项目开发与前期发散。适用于以下场景：(1) 用户输入 `/discover`，从模糊想法或粗糙需求生成 `mbank/discovery.md` 与 `mbank/design.md`；(2) 用户输入 `/mbank`，基于 `mbank/design.md` 做正式澄清、复杂度评估并生成 `mbank/tech-stack.md`；(3) 用户输入 `/scaffold`，生成 `AGENTS.md`、`implementation-plan`、`progress`、`architecture`、`quickref` 等项目骨架文档；(4) 用户输入 `/check` 做完整验证；(5) 用户输入 `/archive` 做里程碑封版；(6) 用户需要基于 `mbank/` 文档进行结构化项目开发；(7) 用户提到 mbank 相关概念。
 ---
 
 # mbank 工作流
+
+按需读取引用文件：
+- 执行 `/discover` 时，读取 `references/discovery-template.md` 与 `references/design-template.md`
+- 执行 `/scaffold` 时，读取 `references/scaffold-templates.md`
 
 ## 命令
 
 | 命令 | 作用 |
 |------|------|
-| `/mbank` | 读取偏好 → 读取 design.md → 场景化澄清 → 复杂度评估 → 生成 tech-stack.md |
-| `/init` | 根据复杂度模式生成对应文件集（CLAUDE.md、implementation-plan、progress、architecture、quickref） |
-| `/check` | 执行已完成步骤的验证命令 + 文档一致性检查 |
-| `/archive` | 归档当前版本 → 重置进度 → 生成里程碑总结 |
+| `/discover` | 从想法或粗糙需求出发，完成痛点澄清、问题重构、范围分叉，并生成 `mbank/discovery.md` 与 `mbank/design.md` |
+| `/mbank` | 读取 `mbank/design.md`，做正式澄清、复杂度评估，生成 `mbank/tech-stack.md` |
+| `/scaffold` | 根据复杂度和 `mbank/tech-stack.md` 生成 `AGENTS.md`、可选 `CLAUDE.md`、`implementation-plan`、`progress`、`architecture`、`quickref` |
+| `/check` | 用户显式触发的完整验证：执行验证命令并检查文档一致性 |
+| `/archive` | 用户显式触发的里程碑封版：归档已完成任务、重置当前状态、生成阶段总结 |
+
+## 推荐顺序
+
+- 想法还模糊：`/discover` → `/mbank` → `/scaffold`
+- 已有成熟 `mbank/design.md`：`/mbank` → `/scaffold`
+- 已完成骨架初始化：直接按实施计划进入开发
 
 ---
 
-## /mbank 流程
+## /discover
 
-### 0. 读取个人偏好
-1. 检查是否存在 `~/.claude/skills/mbank/defaults.md`
-2. 如存在，读取并作为技术栈选择的参考
-3. 如不存在，跳过此步骤
+用于把“想做什么”收敛成可执行的 `mbank/design.md`。若已存在 `mbank/design.md` 但仍只是功能清单，也先执行 `/discover`。
 
-### 1. 需求澄清
-1. 读取 `mbank/design.md`
-2. 判断项目类型（APP / 游戏 / 工具），使用对应澄清清单
-3. 如有不明确之处，向用户提问
-4. 根据回答可修改/补充 `design.md`
-5. 确认后进入下一步
+### 核心步骤
 
-#### APP 类项目必须澄清
-- [ ] 目标平台？(iOS / Android / Web / Desktop / 跨平台)
-- [ ] 离线使用需求？
-- [ ] 用户认证方式？(无 / 邮箱 / OAuth / 手机号)
-- [ ] 数据存储方案？(本地 / 云端 / 混合)
-- [ ] 是否需要实时功能？(推送 / WebSocket)
+1. 读取已有材料
+- 若 `mbank/design.md` 已成熟，可建议直接进入 `/mbank`
+- 若缺少用户、场景、约束或范围边界，继续发散
 
-#### 游戏类项目必须澄清
-- [ ] 核心循环（core loop）是什么？
-- [ ] 目标平台和输入方式？(键鼠 / 触屏 / 手柄)
-- [ ] 2D / 3D？美术风格方向？
-- [ ] 是否需要联网功能？(单机 / 联机 / 排行榜)
-- [ ] 引擎偏好？(Godot / Unity / Unreal / Web)
-- [ ] 音频需求？(BGM / 音效 / 无)
+2. 痛点澄清
+- 必须明确：谁遇到问题、在哪个场景、当前怎么做、现有方案为什么不够、频率如何、不解决的成本是什么
+- 优先要求具体例子，不接受纯抽象愿景
 
-#### 工具类项目必须澄清
-- [ ] 交互形式？(CLI / GUI / TUI / Web)
-- [ ] 输入输出格式？
-- [ ] 是否需要跨平台？
-- [ ] 目标用户？(自用 / 团队 / 公开发布)
+3. 问题重构
+- 用一句话总结原始想法
+- 用一句话改写成真正要解决的问题
+- 提炼 3-6 条可确认的产品前提
 
-### 2. 复杂度评估
-根据以下指标评估项目复杂度：
-- 预计文件/模块数量
-- 是否有前后端分离
-- 是否涉及外部 API/数据库
-- 是否需要状态管理
-- **TDD 适用性**：技术栈是否支持测试框架（如 Jest、pytest、go test）
+4. 隐含能力提取
+- 区分：核心能力、支撑能力、暂不纳入范围
+- 只基于用户场景提取，不凭空脑补
 
-| 模式 | 判断条件 | /init 生成的文件 | TDD |
-|------|---------|-----------------|-----|
-| **轻量模式** | < 3 个文件/模块，无后端，单一功能 | `CLAUDE.md` + `design.md` + `progress.md` | 可选 |
-| **标准模式** | 多模块，前后端分离，需要架构设计 | 全套文件 + `mbank/context/` 目录 | **必须** |
-| **复杂模式** | 大型游戏/多系统交互 | 全套 + 模块拆分 spec + 子系统 context | **必须** |
+5. 范围分叉
+- 必须给出 3 条路线：最小切口版、平衡版、愿景版
+- 每条都写清：解决什么、不解决什么、复杂度、风险
+- 默认推荐最小切口版，除非有明确理由
 
-向用户展示评估结果，等待确认。
+6. 收敛
+- 生成 `mbank/discovery.md`
+- 生成 `mbank/design.md`
+- 模板见 `references/discovery-template.md` 与 `references/design-template.md`
+- 只有在 `mbank/design.md` 草稿完成后，才能进入 `/mbank`
 
-### 3. 生成技术栈
-1. 结合个人偏好（如有）和项目需求
-2. 选择**最简单但最健壮**的技术方案
-3. 如偏好与需求冲突，向用户说明原因
-4. 生成 `mbank/tech-stack.md`
-5. 向用户展示，等待确认
+### 结束条件
 
-**技术栈选择原则**:
-- 优先成熟稳定的技术
-- 避免过度工程化
-- 考虑用户技术背景
+- 用户、场景、痛点明确
+- 产品前提已确认
+- 已比较至少 3 条路线
+- 已选定推荐路线
+- `mbank/design.md` 草稿已生成
 
 ---
 
-## /init 流程
+## /mbank
 
-根据复杂度评估结果生成对应文件。以下为**标准模式**的完整流程，轻量模式跳过标注为 `[标准+]` 的步骤。
+用于把 `mbank/design.md` 转成可执行的技术方案。
 
-### 4. 生成项目规则
-在项目根目录创建 `CLAUDE.md`，**必须包含**：
+### 输入守卫
 
-```markdown
-# 核心工作流 (ALWAYS APPLY)
+- 若不存在 `mbank/design.md`，先执行 `/discover`
+- 若 `mbank/design.md` 仍缺少用户、场景、约束或范围边界，先执行 `/discover`
+- 如存在 `mbank/discovery.md`，仅在需要理解前提或取舍时按需读取
 
-> [!IMPORTANT]
-> **在生成、修改或重构任何代码前，必须：**
->
-> 1. **[Always]** 完整阅读 `mbank/quickref.md`
-> 2. **[Always]** 完整阅读 `mbank/architecture.md`
-> 3. **[Always]** 完整阅读 `mbank/design.md`
-> 4. **[Always]** 完整阅读 `mbank/tech-stack.md`
-> 5. **[Always]** 阅读 `mbank/progress.md` 的 `## 当前状态` 区块（仅顶部，无需全文）
-> 6. **[On-Demand]** 当涉及具体模块时，根据 quickref.md 的指引阅读 `mbank/context/` 下对应的上下文文件
-> 7. **[Always]** 完成重大功能后，立即更新 `mbank/architecture.md` 和 `mbank/quickref.md`
-> 8. **[Always]** 完成重大功能后，创建/更新 `mbank/context/` 下的模块上下文，并按写入规则判断是否需要提炼全局规则到 `.claude/rules/`
-> 9. **[Always]** 任务完成后，询问用户是否更新 `mbank/progress.md`
+### 核心步骤
 
-# 代码规范 (Anti-Monolith)
+1. 读取个人偏好
+- 检查 `~/.claude/skills/mbank/defaults.md`
+- 如存在，作为技术栈选择参考
 
-- **禁止单体大文件**：模块化拆分，单文件不超过 200 行
-- **技术栈一致性**：严格遵守 tech-stack.md，禁止引入未授权的第三方包
-- **TDD 纪律** [标准+]：先写测试再写实现，严禁跳过 Red 阶段
+2. 正式澄清
+- 判断项目类型：APP / 游戏 / 工具
+- 用对应清单补齐缺失信息
+- 需要时修改 `mbank/design.md`
 
-# 文档写入规则
+APP 类至少澄清：
+- 目标平台
+- 离线需求
+- 认证方式
+- 数据存储方案
+- 实时功能需求
 
-## 写入 `.claude/rules/` 的条件（必须同时满足）
-- ✅ 适用于所有模块/文件，不限定某个功能域
-- ✅ 是约束/禁令，不是知识描述
-- ✅ 内容不会随开发进展变化
-- ✅ 单条规则不超过 2 行
+游戏类至少澄清：
+- 核心循环
+- 目标平台和输入方式
+- 2D/3D 与美术方向
+- 联网需求
+- 引擎偏好
+- 音频需求
 
-## 写入 `mbank/context/{模块名}.md` 的条件（满足任一）
-- ✅ 仅与特定模块/功能相关
-- ✅ 包含实现细节（流程、API 格式、数据结构）
-- ✅ 包含踩坑记录（原因 + 正确做法）
-- ✅ 内容可能随迭代更新
+工具类至少澄清：
+- 交互形式
+- 输入输出格式
+- 是否跨平台
+- 目标用户
 
-## 速查：`.claude/rules/` 放"不许做什么"，`mbank/context/` 放"该怎么做"
+3. 复杂度评估
+- 指标：文件/模块数量、前后端分离、外部 API/数据库、状态管理、TDD 适用性
 
-## 写入流程
-1. 完成模块后，先写 `mbank/context/{模块名}.md`
-2. 检查是否有值得提炼为全局规则的内容
-3. 如有，提炼为一句话写入 `.claude/rules/`
-4. 更新 `quickref.md` 的关键路径表和踩坑速览
-```
+| 模式 | 判断条件 | `/scaffold` 生成结果 | TDD |
+|------|---------|----------------------|-----|
+| 轻量 | < 3 个文件/模块，无后端，单一功能 | `AGENTS.md` + `mbank/design.md` + `mbank/progress.md` | 可选 |
+| 标准 | 多模块，前后端分离，需要架构设计 | 全套文件 + `mbank/context/` | 必须 |
+| 复杂 | 大型游戏/多系统交互 | 全套 + 模块拆分 spec + 子系统 context | 必须 |
 
-**还应包含**：根据 tech-stack.md 生成的技术栈特定最佳实践。
-
-**关键**：用户必须审查规则后才能继续。
-
-### 5. 生成实施计划 `[标准+]`
-生成 `mbank/implementation-plan.md`：
-
-| 规则 | 说明 |
-|------|------|
-| 步骤小而具体 | 每步只做一件事 |
-| **测试先行 (TDD)** | `[标准+]` 每步先写测试，再写实现 |
-| 包含验证命令 | 每步有可执行的验证方法 |
-| **严禁包含代码** | 只写清晰指令 |
-| 根据复杂度调整 | 轻量模式可省略 TDD |
-
-**模板**：
-```markdown
-# [项目名称] - 实施计划
-
-> **版本**: v1.0
-> **复杂度评估**: [轻量/标准/复杂]
-> **TDD**: [是/否]
-
-## Phase 0: 项目初始化
-
-### Step 0.1 - [任务名称]
-**目标**: [一句话描述]
-**测试**: [先写什么测试，测试文件路径] ← [标准+] TDD
-**操作**: [具体指令，不含代码]
-**验证命令**: [可执行的命令，如 `npm test`、`npm run build`]
-**验证标准**: [预期结果，如"测试全部通过"、"构建无错误"]
-
-## 里程碑检查点
-### Milestone 1: [名称]
-- [ ] 任务 A
-- [ ] 任务 B
-```
-
-**TDD 规范** `[标准+]`：
-- 每个 Step 遵循 **Red → Green → Refactor** 循环
-  1. **Red**: 先写失败测试，明确预期行为
-  2. **Green**: 用最少代码让测试通过
-  3. **Refactor**: 重构实现，保持测试绿色
-- 轻量模式下 TDD 为可选项，但仍建议为核心逻辑写测试
-- 测试文件与源文件就近放置（如 `src/utils.ts` → `src/utils.test.ts`）
-
-### 6. 创建进度文件
-创建 `mbank/progress.md`：
-
-```markdown
-# [项目名称] - 开发进度
-
-## 当前状态
-<!-- 此区块是常驻上下文，每次对话都会读取，保持 10 行以内 -->
-**阶段**: Phase 0
-**当前任务**: 等待开始
-**最后更新**: [日期]
-
-## 已完成任务
-(暂无)
-
-## Errors Encountered
-| 错误 | 尝试次数 | 解决方案 |
-|------|----------|----------|
-```
-
-**关键约定**：`## 当前状态` 区块始终在文件最顶部，保持 10 行以内。每次更新 progress.md 时同步刷新此区块，使其反映最新状态。
-
-### 7. 创建架构文件 `[标准+]`
-创建 `mbank/architecture.md`：
-
-```markdown
-# [项目名称] - 系统架构
-
-## 当前状态
-**版本**: 0.0.1
-
-## 目录结构
-(待项目初始化后填充)
-
-## 组件职责
-| 文件/组件 | 职责 | 依赖 |
-|-----------|------|------|
-(待开发时填充)
-
-## 设计决策记录
-(待开发时填充)
-```
-
-### 8. 创建快速参考 `[标准+]`
-创建 `mbank/quickref.md`——**开发者速查卡兼模块索引**，每次对话首先阅读：
-
-```markdown
-# [项目名称] - 快速参考
-
-> 索引层：记录关键路径和模块指针，详情按需查阅 mbank/context/
-> 每次完成重大功能后同步更新。
-
-## 关键路径
-| 功能 | 入口 | 核心文件 | 上下文 |
-|------|------|----------|--------|
-(待开发时填充)
-
-## 活跃工作流
-(记录当前系统的核心操作流程，用简短的步骤链表示)
-
-## 踩坑速览
-| 坑 | 模块 | 详情 |
-|----|------|------|
-(一行摘要 + 指向 mbank/context/ 的链接)
-```
-
-**quickref.md 的定位**：
-- `architecture.md` = 完整架构文档（组件职责、数据流、设计决策）
-- `quickref.md` = 开发者速查卡 + 模块索引（关键路径、活跃流程、踩坑摘要 → context 指针）
-- quickref 只放"打开项目第一分钟需要知道的事"，不重复 architecture 的内容
+4. 生成技术栈
+- 生成 `mbank/tech-stack.md`
+- 原则：简单、健壮、成熟、避免过度工程化
+- 向用户展示并等待确认
 
 ---
 
-## 开发阶段
+## /scaffold
 
-用户告知执行实施计划后：
+用于在技术栈和复杂度确认后生成项目骨架文档。
 
-1. 阅读 mbank/ 核心文档（quickref → architecture → design → tech-stack → progress 当前状态）
-2. 根据 quickref 索引，按需阅读 `mbank/context/` 下与当前步骤相关的模块上下文
-3. **`[标准+]` TDD: Red** — 根据当前步骤的 **测试** 字段，先写失败测试
-4. **`[标准+]` TDD: Green** — 用最少代码让测试通过
-5. **`[标准+]` TDD: Refactor** — 重构代码，保持测试绿色
-6. （轻量模式跳过 3-5，直接执行当前步骤）
-7. 运行验证命令，等待用户确认
-8. 通过后更新 progress.md 和 architecture.md
-9. **同步更新 quickref.md**（关键路径、活跃工作流、新踩坑速览）
-10. **创建/更新 `mbank/context/{模块名}.md`**（模块深度上下文）
-11. **按写入规则判断**：是否需要提炼全局约束到 `.claude/rules/`
-12. 进入下一步
+### 生成内容
 
-**关键规则**:
-- **TDD 纪律** `[标准+]`: 测试先行，严禁跳过 Red 阶段直接写实现
-- **逐步验证**: 验证通过前不开始下一步
-- **2-Action Rule**: 每 2 次搜索后将发现写入文档
-- **3-Strike Protocol**: 同一错误尝试 3 次后换方法或询问用户
+- `AGENTS.md`
+- 可选 `CLAUDE.md`
+- `mbank/implementation-plan.md`
+- `mbank/progress.md`
+- `mbank/architecture.md`
+- `mbank/quickref.md`
+- `mbank/context/`
 
-### 文档一致性检查（每完成 3 个 step 自动执行）
+具体模板见 `references/scaffold-templates.md`。
 
-1. 检查 quickref.md 的关键路径表：
-   - 入口文件是否还存在？
-   - 核心文件路径是否正确？
-2. 检查 architecture.md 的组件职责表：
-   - 是否有新增但未记录的组件？
-   - 是否有已删除但仍在表中的组件？
-3. 检查 mbank/context/ 下的模块文档：
-   - 是否覆盖了所有已完成模块？
-   - 流程描述是否与当前代码一致？
-4. 如发现不一致，立即修复后再继续开发。
+### 开发阶段规则
+
+1. 先读：`quickref` → `architecture` → `design` → `tech-stack` → `progress` 当前状态
+2. 按需读取 `mbank/context/`
+3. 标准/复杂模式严格遵循 TDD：Red → Green → Refactor
+4. 验证通过前不进入下一步
+5. 完成重大功能后更新 `progress.md`、`architecture.md`、`quickref.md`
+6. 需要时新增或更新 `mbank/context/{模块名}.md`
+7. 每完成 3 个 step，自动执行一次轻量文档一致性检查
 
 ---
 
-## /check 流程
+## /check
+
+仅在用户显式触发时执行完整验证：
 
 1. 读取 `mbank/implementation-plan.md`
 2. 找到所有已完成步骤的验证命令
 3. 依次执行验证命令
-4. 汇报结果：
-   - ✅ Step X.X - 通过
-   - ❌ Step X.X - 失败：[错误信息]
+4. 汇报通过/失败结果
 5. 对失败项提出修复建议
-6. 执行文档一致性检查（同上）
+6. 执行完整文档一致性检查
 
 ---
 
-## /archive 流程
+## /archive
+
+仅在用户显式触发时执行。作用是做一次里程碑封版，而不是替代 git。
+
+### 执行内容
 
 1. 确认当前里程碑名称和版本号
-2. 归档操作：
-   - 将 progress.md 的已完成任务移入 `mbank/archive/v{版本号}.md`
-   - 重置 progress.md 的 `## 当前状态`
-   - 更新 architecture.md 的版本号
-   - 对 quickref.md 做一次完整性检查
-3. 生成里程碑总结（包含已完成功能列表、已知问题、下阶段方向）
+2. 将 `progress.md` 的已完成任务移入 `mbank/archive/v{版本号}.md`
+3. 重置 `progress.md` 的 `## 当前状态`
+4. 更新 `architecture.md` 的版本号或阶段状态
+5. 检查 `quickref.md` 完整性
+6. 生成阶段总结：已完成功能、已知问题、下阶段方向
+
+### 适用场景
+
+- MVP 完成
+- 一个 milestone 完成
+- 准备进入下一大阶段
 
 ---
 
-## 三层上下文架构
+## 上下文层级
 
-### `.claude/rules/` — 全局硬规则（自动加载）
-
-会话启动时自动全量加载。**仅放跨模块不变约束**，总计控制在 30 行以内。
-
-```markdown
----
-globs: "**/*"
----
-- 单文件不超过 200 行
-- 严格遵守 tech-stack.md，禁止引入未授权的第三方包
-- (其他从 mbank/context/ 提炼出的全局约束)
-```
-
-### `mbank/context/` — 模块深度上下文（按需加载）
-
-每个文件记录一个模块的完整上下文，仅在触及该模块时根据 quickref.md 索引加载。
-
-#### 何时创建
-- 完成一个新模块/功能后
-- 遇到重大踩坑后（防止下次编辑同一文件时重蹈覆辙）
-- 模块涉及外部系统交互（API、页面结构、选择器等易变信息）
-
-#### 文件格式
-```markdown
-# [模块名] 上下文
-
-**关联文件**: [glob 模式，如 `scripts/downloader.py`]
-
-- **职责**: 一句话描述
-- **核心流程**: 步骤链
-- **关键约束**: 必须遵守的规则
-- **踩坑记录**:
-  | 坑 | 原因 | 正确做法 |
-  |----|------|----------|
-```
-
-#### 命名约定
-- 文件名 = 模块名或功能域名，如 `downloader.md`、`hero-analysis.md`
-
-#### 示例
-```markdown
-# downloader 上下文
-
-**关联文件**: `scripts/downloader.py`
-
-- **职责**: 批量下载 DataWind 看板数据
-- **核心流程**: 启动浏览器 → 遍历 URL → 打开菜单 → 导出 CSV → 保存
-- **关键约束**: 必须用 launch_persistent_context 复用登录会话
-- **踩坑记录**:
-  | 坑 | 原因 | 正确做法 |
-  |----|------|----------|
-  | "收起工具栏"按钮不能点 | arco-icon-N-Down1 会导致工具栏消失 | 跳过该按钮 |
-```
-
----
+- `AGENTS.md`：项目主规则文件，常驻
+- `CLAUDE.md`：可选兼容入口
+- `.claude/rules/`：全局硬规则，仅放跨模块不变约束
+- `mbank/quickref.md`：常驻速查层
+- `mbank/architecture.md`：常驻架构层
+- `mbank/design.md`：常驻设计层
+- `mbank/discovery.md`：按需读取的前期发散层
+- `mbank/progress.md`：默认只读 `## 当前状态`
+- `mbank/context/`：模块深度上下文，按需加载
 
 ## 文件结构
 
-```
+```text
 项目根目录/
-├── CLAUDE.md                    # 项目规则 + 文档写入决策规则（/init 生成，始终加载）
+├── AGENTS.md
+├── CLAUDE.md
 ├── .claude/
-│   └── rules/                   # 全局硬规则（自动加载，仅放跨模块约束）
-│       └── global-constraints.md
+│   └── rules/
 └── mbank/
-    ├── design.md                # 设计文档（用户创建）
-    ├── tech-stack.md            # 技术栈（/mbank 生成）
-    ├── quickref.md              # 开发者速查卡 + 模块索引（/init 生成）
-    ├── architecture.md          # 完整架构（/init 生成）[标准+]
-    ├── implementation-plan.md   # 实施计划（/init 生成）[标准+]
-    ├── progress.md              # 进度追踪（/init 生成）
-    ├── context/                 # 模块深度上下文（开发阶段按需生成）
-    │   ├── downloader.md
-    │   └── ...
-    └── archive/                 # 里程碑归档（/archive 生成）
-        ├── v0.1.md
-        └── ...
+    ├── discovery.md
+    ├── design.md
+    ├── tech-stack.md
+    ├── quickref.md
+    ├── architecture.md
+    ├── implementation-plan.md
+    ├── progress.md
+    ├── context/
+    └── archive/
 ```
-
-### 上下文加载层级
-
-| 层级 | 文件 | 加载时机 | 内容 |
-|------|------|----------|------|
-| L1 常驻 | `CLAUDE.md` | 每次对话 | 项目规则、文档写入决策规则、加载指引 |
-| L2 自动 | `.claude/rules/*.md` | 会话启动全加载 | **仅**跨模块硬规则（精简，总计 < 30 行） |
-| L3 常驻 | `mbank/quickref.md` | 每次对话必读 | 关键路径索引 + 关键词→context 映射 + 踩坑摘要 |
-| L4 常驻 | `mbank/architecture.md` | 每次对话 | 完整架构、组件职责、设计决策 |
-| L5 常驻 | `mbank/design.md` | 每次对话 | 完整设计文档 |
-| L6 常驻 | `mbank/tech-stack.md` | 每次对话 | 技术栈约束 |
-| L7 常驻（部分）| `mbank/progress.md` | 每次对话仅读 `## 当前状态` | 当前阶段、最近任务 |
-| L8 **按需** | `mbank/context/*.md` | 触及对应模块时按 quickref 索引加载 | 模块深度上下文 |
-| L9 按需 | `mbank/progress.md` 全文 | 需要查历史/错误记录时 | 完整进度历史 |
-| L10 按需 | `mbank/archive/*.md` | 需要查历史版本时 | 里程碑归档 |
