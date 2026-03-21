@@ -1,0 +1,20 @@
+# Backups
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+
+# Local temp
+tmp/
+temp/
+*.tmp
